@@ -146,6 +146,12 @@ def load_swebench_dataset(
             "lite",
         }:
             name = "princeton-nlp/SWE-bench_Lite"
+        # maybe use better names
+        elif name.lower() in {'swabench', 'swa-bench', 'swa_bench', 'swa'}:
+            name = "LogicStar/swa_bench_v0_n_535_deps_relaxed_True"
+        elif name.lower() in {'sweebench', 'swee-bench', 'swee_bench', 'swee'}:
+            name = "LogicStar/swee_bench_v0_n_535_deps_relaxed_True"
+        
         if (Path(name) / split / "dataset_info.json").exists():
             dataset = cast(Dataset, load_from_disk(Path(name) / split))
         else:

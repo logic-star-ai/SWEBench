@@ -16,6 +16,10 @@ def make_repo_script_list(specs, repo, repo_directory, base_commit, env_name) ->
     Create a list of bash commands to set up the repository for testing.
     This is the setup script for the instance image.
     """
+
+    if MAP_REPO_TO_EXT.get(repo, None) is None:
+        ext = MAP_REPO_TO_EXT[repo] = "py"
+
     ext = MAP_REPO_TO_EXT[repo]
     func = {
         "js": make_repo_script_list_js,
@@ -29,6 +33,9 @@ def make_env_script_list(instance, specs, env_name) -> list:
     Creates the list of commands to set up the environment for testing.
     This is the setup script for the environment image.
     """
+    if MAP_REPO_TO_EXT.get(instance["repo"], None) is None:
+        ext = MAP_REPO_TO_EXT[instance["repo"]] = "py"
+    
     ext = MAP_REPO_TO_EXT[instance["repo"]]
     func = {
         "js": make_env_script_list_js,
@@ -43,6 +50,10 @@ def make_eval_script_list(
     """
     Applies the test patch and runs the tests.
     """
+    
+    if MAP_REPO_TO_EXT.get(instance["repo"], None) is None:
+        ext = MAP_REPO_TO_EXT[instance["repo"]] = "py"
+    
     ext = MAP_REPO_TO_EXT[instance["repo"]]
     func = {
         "js": make_eval_script_list_js,

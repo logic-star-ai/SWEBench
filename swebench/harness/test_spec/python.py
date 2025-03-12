@@ -1,4 +1,5 @@
 import os
+import ast
 import posixpath
 import re
 import requests
@@ -291,14 +292,26 @@ def make_eval_script_list_py(
     apply_test_patch_command = (
         f"git apply -v - <<'{HEREDOC_DELIMITER}'\n{test_patch}\n{HEREDOC_DELIMITER}"
     )
-    test_command = " ".join(
-        [
-            MAP_REPO_VERSION_TO_SPECS[instance["repo"]][instance["version"]][
-                "test_cmd"
-            ],
-            *get_test_directives(instance),
-        ]
-    )
+
+    if MAP_REPO_VERSION_TO_SPECS.get(instance["repo"], None) and instance["version"]:
+        test_command = " ".join(
+            [
+                MAP_REPO_VERSION_TO_SPECS[instance["repo"]][instance["version"]][
+                    "test_cmd"
+                ],
+                *get_test_directives(instance),
+            ]
+        )
+    elif instance.get("test_framework", None) and instance["test_framework"]:
+        test_command = " ".join(
+            [
+                instance["test_framework"],
+                *get_test_directives(instance),
+            ]
+        )
+    else:
+        test_command = " && ".join(ast.literal_eval(instance["test_commands"]))
+
     eval_commands = [
         "source /opt/miniconda3/bin/activate",
         f"conda activate {env_name}",
@@ -317,7 +330,10 @@ def make_eval_script_list_py(
         f"conda activate {env_name}",
     ]
     if "install" in specs:
-        eval_commands.append(specs["install"])
+        if isinstance(specs["install"], str):
+            eval_commands.append(specs["install"])
+        elif isinstance(specs["install"], list):
+            eval_commands.extend(specs["install"])
     eval_commands += [
         reset_tests_command,
         apply_test_patch_command,
