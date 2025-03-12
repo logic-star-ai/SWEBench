@@ -1,4 +1,6 @@
 import re
+from enum import Enum
+from collections import defaultdict
 
 from swebench.harness.constants import TestStatus
 from swebench.harness.test_spec.test_spec import TestSpec
@@ -249,6 +251,90 @@ def parse_log_matplotlib(log: str, test_spec: TestSpec) -> dict[str, str]:
             test_status_map[test_case[1]] = test_case[0]
     return test_status_map
 
+###################
+# copy paste our parsers for our instances.    
+
+def parser_pytest(
+    log: str,
+    test_status_map: dict[str, int],
+) -> dict[str, str]:
+    test_result_dict: dict[str, str] = {}
+
+    # check for pytest
+    if log.find("short test summary info") != -1:
+        log = log[log.find("short test summary info") :]
+
+    pytest_ptr = re.compile(rf"({'|'.join(x.value for x in TestStatus)})\s+(.+)")
+    all_matches = pytest_ptr.findall(log)
+    for status, test_name in all_matches:
+        test_status_map[status] += 1
+        test_result_dict[test_name] = status
+
+    return test_result_dict
+
+
+def parser_unittest(
+    log: str,
+    test_status_map: dict[str, int],
+) -> dict[str, str]:
+
+    UNITTEST_TO_PYTESTSTATUS = {
+        "error": TestStatus.ERROR,
+        "failed": TestStatus.FAILED,
+        "fail": TestStatus.FAILED,
+        "FAIL": TestStatus.FAILED,
+        "passed": TestStatus.PASSED,
+        "ok": TestStatus.PASSED,
+        "skipped": TestStatus.SKIPPED,
+        "x": TestStatus.XFAIL,
+        "u": TestStatus.ERROR,
+        "deprecated": TestStatus.SKIPPED,  # not sure what to do with this one
+    }
+
+    test_result_dict: dict[str, str] = {}
+    # parser unit test
+    # first check pattern with ... inbetween, e.g. test ... status
+    pattern = (
+        rf"([^\s]+)\s*\.\.\.\s*({'|'.join(x for x in UNITTEST_TO_PYTESTSTATUS.keys())})"
+    )
+    pattern = rf"(test[_\w]*\s\([^\)]+\)|[^\s]+)\s*\.\.\.\s*({'|'.join(x for x in UNITTEST_TO_PYTESTSTATUS.keys())})"
+    all_matches = re.findall(pattern, log)
+    for test_name, status in all_matches:
+        # unit test name has to have a test in it
+        if "test" not in test_name:
+            continue
+        value = UNITTEST_TO_PYTESTSTATUS[status].value
+        test_status_map[value] += 1
+        test_result_dict[test_name] = value
+
+    # second check pattern with newline inbetween, e.g. test \nnstatus
+    pattern = rf"([^\s]+)\n({'|'.join(x for x in UNITTEST_TO_PYTESTSTATUS.keys())})"
+    # pattern = rf"(test[_\w]*(?:\s\([^\)]+\)|[^\s]+))\s*(?:\.\.\.\s*)?\n?({'|'.join(x for x in UNITTEST_TO_PYTESTSTATUS.keys())})\s*\n?"
+    all_matches = re.findall(pattern, log)
+    for test_name, status in all_matches:
+        # unit test name has to have a test in it
+        if "test" not in test_name:
+            continue
+        value = UNITTEST_TO_PYTESTSTATUS[status].value
+        test_status_map[value] += 1
+        test_result_dict[test_name] = value
+
+    return test_result_dict
+
+
+def parser_all_logs(
+    log: str,
+    test_spec: TestSpec,
+) -> dict[str, str]:
+    
+    # parser_log_all imported from application-bench with small adaptations to fit the swebench code.
+    test_status_map: dict[str, int] = defaultdict(int)
+
+    test_result_dict = parser_pytest(log, test_status_map)
+    test_result_dict.update(parser_unittest(log, test_status_map))
+
+    return test_result_dict
+##################
 
 parse_log_astroid = parse_log_pytest
 parse_log_flask = parse_log_pytest

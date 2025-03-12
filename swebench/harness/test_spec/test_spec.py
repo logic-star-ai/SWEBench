@@ -1,4 +1,5 @@
 import hashlib
+import ast
 import json
 import platform
 
@@ -95,8 +96,15 @@ class TestSpec:
 
     @property
     def instance_image_key(self):
-        key = f"sweb.eval.{self.arch}.{self.instance_id.lower()}:{self.instance_image_tag}"
-        if self.is_remote_image:
+        # TODO: when the images will be public then the key could be swabench/image_name and sweebench/image_name accordingly. Now because the docker registry is not public this is little bit different.
+        if self.namespace == "swabench":
+            key = f"192.168.50.33:5000/swa.eval.{self.arch}.{self.instance_id.lower()}:{self.instance_image_tag}"
+        elif self.namespace == "sweebench":
+            key = f"192.168.50.33:5000/swee.eval.{self.arch}.{self.instance_id.lower()}:{self.instance_image_tag}"
+        else:
+            key = f"sweb.eval.{self.arch}.{self.instance_id.lower()}:{self.instance_image_tag}"
+        
+        if self.is_remote_image and not (self.namespace == "swabench" or self.namespace == "sweebench"):
             key = f"{self.namespace}/{key}".replace("__", "_1776_")
         return key
 
@@ -194,7 +202,15 @@ def make_test_spec(
 
     env_name = "testbed"
     repo_directory = f"/{env_name}"
-    specs = MAP_REPO_VERSION_TO_SPECS[repo][version]
+
+    if MAP_REPO_VERSION_TO_SPECS.get(repo, None):
+        specs = MAP_REPO_VERSION_TO_SPECS[repo][version]
+    elif instance.get("install", None):
+        specs = instance["install"]
+        if isinstance(specs, str):
+            specs = ast.literal_eval(specs)
+
+
     docker_specs = specs.get("docker_specs", {})
 
     repo_script_list = make_repo_script_list(
