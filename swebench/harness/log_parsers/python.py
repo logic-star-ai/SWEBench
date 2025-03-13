@@ -256,8 +256,8 @@ def parse_log_matplotlib(log: str, test_spec: TestSpec) -> dict[str, str]:
 
 def parser_pytest(
     log: str,
-    test_status_map: dict[str, int],
 ) -> dict[str, str]:
+    
     test_result_dict: dict[str, str] = {}
 
     # check for pytest
@@ -267,15 +267,13 @@ def parser_pytest(
     pytest_ptr = re.compile(rf"({'|'.join(x.value for x in TestStatus)})\s+(.+)")
     all_matches = pytest_ptr.findall(log)
     for status, test_name in all_matches:
-        test_status_map[status] += 1
         test_result_dict[test_name] = status
 
     return test_result_dict
 
 
 def parser_unittest(
-    log: str,
-    test_status_map: dict[str, int],
+    log: str
 ) -> dict[str, str]:
 
     UNITTEST_TO_PYTESTSTATUS = {
@@ -304,7 +302,6 @@ def parser_unittest(
         if "test" not in test_name:
             continue
         value = UNITTEST_TO_PYTESTSTATUS[status].value
-        test_status_map[value] += 1
         test_result_dict[test_name] = value
 
     # second check pattern with newline inbetween, e.g. test \nnstatus
@@ -316,7 +313,6 @@ def parser_unittest(
         if "test" not in test_name:
             continue
         value = UNITTEST_TO_PYTESTSTATUS[status].value
-        test_status_map[value] += 1
         test_result_dict[test_name] = value
 
     return test_result_dict
@@ -327,12 +323,26 @@ def parser_all_logs(
     test_spec: TestSpec,
 ) -> dict[str, str]:
     
-    # parser_log_all imported from application-bench with small adaptations to fit the swebench code.
-    test_status_map: dict[str, int] = defaultdict(int)
+    # SWE-Bench provide 3 pytest log parsers. Instead of going through each one repo and checking which should be used
+    # I wil use all 3 pytest log parsers and I will take the union of the test names.
+    test_result_dict = parse_log_pytest(log, test_spec)
+    _test_result_dict = parse_log_pytest_options(log, test_spec)
+    for k, v in _test_result_dict.items():
+        if k not in test_result_dict:
+            test_result_dict[k] = v
+        else:
+            assert v == test_result_dict[k]
+    
+    _test_result_dict = parse_log_pytest_v2(log, test_spec)
+    for k, v in _test_result_dict.items():
+        if k not in test_result_dict:
+            test_result_dict[k] = v
+        else:
+            assert v == test_result_dict[k]
+    
+    test_result_dict.update(parser_unittest(log))
 
-    test_result_dict = parser_pytest(log, test_status_map)
-    test_result_dict.update(parser_unittest(log, test_status_map))
-
+    #test_result_dict = parser_pytest(log)
     return test_result_dict
 ##################
 
