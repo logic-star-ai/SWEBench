@@ -325,24 +325,24 @@ def parser_all_logs(
     
     # SWE-Bench provide 3 pytest log parsers. Instead of going through each one repo and checking which should be used
     # I wil use all 3 pytest log parsers and I will take the union of the test names.
-    test_result_dict = parse_log_pytest(log, test_spec)
-    _test_result_dict = parse_log_pytest_options(log, test_spec)
-    for k, v in _test_result_dict.items():
-        if k not in test_result_dict:
-            test_result_dict[k] = v
-        else:
-            assert v == test_result_dict[k]
     
-    _test_result_dict = parse_log_pytest_v2(log, test_spec)
-    for k, v in _test_result_dict.items():
-        if k not in test_result_dict:
-            test_result_dict[k] = v
-        else:
-            assert v == test_result_dict[k]
+    # test_result_dict = parse_log_pytest(log, test_spec)
+    # _test_result_dict = parse_log_pytest_options(log, test_spec)
+    # for k, v in _test_result_dict.items():
+    #     if k not in test_result_dict:
+    #         test_result_dict[k] = v
+    #     else:
+    #         assert v == test_result_dict[k]
     
-    test_result_dict.update(parser_unittest(log))
+    # _test_result_dict = parse_log_pytest_v2(log, test_spec)
+    # for k, v in _test_result_dict.items():
+    #     if k not in test_result_dict:
+    #         test_result_dict[k] = v
+    #     else:
+    #         assert v == test_result_dict[k]
 
-    #test_result_dict = parser_pytest(log)
+    test_result_dict = parser_pytest(log)    
+    test_result_dict.update(parser_unittest(log))
     return test_result_dict
 ##################
 

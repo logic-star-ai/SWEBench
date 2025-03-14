@@ -21,6 +21,7 @@ from swebench.harness.constants import (
 )
 from swebench.harness.test_spec.test_spec import TestSpec
 from swebench.harness.log_parsers import MAP_REPO_TO_PARSER
+from swebench.harness.log_parsers.python import  parser_all_logs
 
 
 # MARK: Utility functions
@@ -46,7 +47,7 @@ def get_logs_eval(test_spec: TestSpec, log_fp: str) -> tuple[dict[str, str], boo
     TODO(john-b-yang): Check this is working properly...
     """
     repo = test_spec.repo
-    log_parser = MAP_REPO_TO_PARSER[repo]
+    log_parser = MAP_REPO_TO_PARSER.get(repo, parser_all_logs)
 
     with open(log_fp) as f:
         content = f.read()
