@@ -74,7 +74,7 @@ class TestSpec:
     @property
     def base_image_key(self):
         return (
-            f"sweb.base.{MAP_REPO_TO_EXT[self.repo]}.{self.arch}:{self.base_image_tag}"
+            f"sweb.base.{MAP_REPO_TO_EXT.get(self.repo,"py")}.{self.arch}:{self.base_image_tag}"
         )
 
     @property
@@ -92,7 +92,7 @@ class TestSpec:
         hash_object.update(hash_key.encode("utf-8"))
         hash_value = hash_object.hexdigest()
         val = hash_value[:22]  # 22 characters is still very likely to be unique
-        return f"sweb.env.{MAP_REPO_TO_EXT[self.repo]}.{self.arch}.{val}:{self.env_image_tag}"
+        return f"sweb.env.{MAP_REPO_TO_EXT.get(self.repo,"py")}.{self.arch}.{val}:{self.env_image_tag}"
 
     @property
     def instance_image_key(self):
@@ -203,13 +203,10 @@ def make_test_spec(
     env_name = "testbed"
     repo_directory = f"/{env_name}"
 
-    if MAP_REPO_VERSION_TO_SPECS.get(repo, None):
-        specs = MAP_REPO_VERSION_TO_SPECS[repo][version]
-    elif instance.get("install", None):
-        specs = instance["install"]
-        if isinstance(specs, str):
-            specs = ast.literal_eval(specs)
-
+    specs = MAP_REPO_VERSION_TO_SPECS.get(repo, instance.get("install", None))
+    if isinstance(specs, str):
+        specs = json.loads(specs)
+    specs = specs.get(version, specs)
 
     docker_specs = specs.get("docker_specs", {})
 
@@ -236,7 +233,7 @@ def make_test_spec(
         arch=arch,
         FAIL_TO_PASS=fail_to_pass,
         PASS_TO_PASS=pass_to_pass,
-        language=MAP_REPO_TO_EXT[repo],
+        language=MAP_REPO_TO_EXT.get(repo,"py"),
         docker_specs=docker_specs,
         namespace=namespace,
         base_image_tag=base_image_tag,

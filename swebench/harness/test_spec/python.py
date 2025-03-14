@@ -293,7 +293,7 @@ def make_eval_script_list_py(
         f"git apply -v - <<'{HEREDOC_DELIMITER}'\n{test_patch}\n{HEREDOC_DELIMITER}"
     )
 
-    if MAP_REPO_VERSION_TO_SPECS.get(instance["repo"], None) and instance["version"]:
+    if instance["repo"] in MAP_REPO_VERSION_TO_SPECS:
         test_command = " ".join(
             [
                 MAP_REPO_VERSION_TO_SPECS[instance["repo"]][instance["version"]][
