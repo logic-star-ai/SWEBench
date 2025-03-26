@@ -21,12 +21,12 @@ from swebench.harness.constants import (
 )
 from swebench.harness.test_spec.test_spec import TestSpec
 from swebench.harness.log_parsers import MAP_REPO_TO_PARSER
-from swebench.harness.log_parsers.python import  parser_all_logs
+from swebench.harness.log_parsers.python import  swa_parser
 
 
 # MARK: Utility functions
 def test_passed(case: str, sm: dict[str, str]) -> bool:
-    return case in sm and sm[case] in [TestStatus.PASSED.value, TestStatus.XFAIL.value]
+    return case in sm and sm[case] in [TestStatus.PASSED.value, TestStatus.XFAIL.value, TestStatus.XPASS.value]
 
 
 def test_failed(case: str, sm: dict[str, str]) -> bool:
@@ -47,7 +47,7 @@ def get_logs_eval(test_spec: TestSpec, log_fp: str) -> tuple[dict[str, str], boo
     TODO(john-b-yang): Check this is working properly...
     """
     repo = test_spec.repo
-    log_parser = MAP_REPO_TO_PARSER.get(repo, parser_all_logs)
+    log_parser = MAP_REPO_TO_PARSER.get(repo, swa_parser)
 
     with open(log_fp) as f:
         content = f.read()
