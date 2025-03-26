@@ -59,7 +59,6 @@ from swebench.harness.utils import (
 )
 
 from swebench.harness.log_parsers import MAP_REPO_TO_PARSER
-from swebench.harness.log_parsers.python import  parser_all_logs
 
 GIT_APPLY_CMDS = [
     "git apply --verbose",
@@ -102,7 +101,6 @@ def run_instance(
         test_output_path = log_dir / LOG_TEST_OUTPUT
         if not test_output_path.exists():
             raise ValueError(f"Test output file {test_output_path} does not exist")
-        # ....
         report = get_eval_report(
             test_spec=test_spec,
             prediction=pred,
@@ -227,8 +225,6 @@ def run_instance(
 
         # Get report from test output
         logger.info(f"Grading answer for {instance_id}...")
-        if not MAP_REPO_TO_PARSER.get(test_spec.repo, None):
-            MAP_REPO_TO_PARSER[test_spec.repo] = parser_all_logs
         report = get_eval_report(
             test_spec=test_spec,
             prediction=pred,

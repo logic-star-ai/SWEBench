@@ -1,5 +1,5 @@
 import os
-import ast
+import json
 import posixpath
 import re
 import requests
@@ -310,7 +310,7 @@ def make_eval_script_list_py(
             ]
         )
     else:
-        test_command = " && ".join(ast.literal_eval(instance["test_commands"]))
+        test_command = " && ".join(json.loads(instance["test_commands"]))
 
     eval_commands = [
         "source /opt/miniconda3/bin/activate",

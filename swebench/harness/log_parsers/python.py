@@ -252,23 +252,16 @@ def parse_log_matplotlib(log: str, test_spec: TestSpec) -> dict[str, str]:
     return test_status_map
 
 ###################
-# copy paste our parsers for our instances.    
+# SWA parsers
 
 def parser_pytest(
     log: str,
-) -> dict[str, str]:
-    
+) -> dict[str, str]: 
     test_result_dict: dict[str, str] = {}
-
-    # check for pytest
-    if log.find("short test summary info") != -1:
-        log = log[log.find("short test summary info") :]
-
     pytest_ptr = re.compile(rf"({'|'.join(x.value for x in TestStatus)})\s+(.+)")
     all_matches = pytest_ptr.findall(log)
     for status, test_name in all_matches:
         test_result_dict[test_name] = status
-
     return test_result_dict
 
 
@@ -301,6 +294,8 @@ def parser_unittest(
         # unit test name has to have a test in it
         if "test" not in test_name:
             continue
+        if test_name in test_result_dict:
+            continue
         value = UNITTEST_TO_PYTESTSTATUS[status].value
         test_result_dict[test_name] = value
 
@@ -312,37 +307,46 @@ def parser_unittest(
         # unit test name has to have a test in it
         if "test" not in test_name:
             continue
+        if test_name in test_result_dict:
+            continue
         value = UNITTEST_TO_PYTESTSTATUS[status].value
         test_result_dict[test_name] = value
 
     return test_result_dict
 
 
-def parser_all_logs(
+def normalize_log(log:str)->str:
+
+    # clean some left over non-sense symbols
+    to_escape = re.compile(r'(?i)\x1b\[[0-9]+m')
+    log = to_escape.sub('', log)
+
+    # fix non deterministic memory addresses
+    memory_addr_regex = r'0x[0-9A-Fa-f]{8}\b|0x[0-9A-Fa-f]{16}\b'
+    log = re.sub(memory_addr_regex, "0xXXXXXXXXX", log)
+    
+    # simplify pytest logs
+    SHORT_TEST_SUMMARY_SEPARATOR = "=========================== short test summary info ============================"
+    pytest_pattern = re.compile(rf"{SHORT_TEST_SUMMARY_SEPARATOR}(.*?)={{5,}}.*? in [\d\.]+s ={{5,}}", re.DOTALL)
+
+    if SHORT_TEST_SUMMARY_SEPARATOR in log:
+        if log.count(SHORT_TEST_SUMMARY_SEPARATOR) == 1:
+            log = log[log.find(SHORT_TEST_SUMMARY_SEPARATOR): ]
+        else:
+            matches = pytest_pattern.findall(log)
+            log = ''
+            for block in matches:
+                log += f'{block}\n'
+    return log
+
+
+def swa_parser(
     log: str,
     test_spec: TestSpec,
 ) -> dict[str, str]:
-    
-    # SWE-Bench provide 3 pytest log parsers. Instead of going through each one repo and checking which should be used
-    # I wil use all 3 pytest log parsers and I will take the union of the test names.
-    
-    # test_result_dict = parse_log_pytest(log, test_spec)
-    # _test_result_dict = parse_log_pytest_options(log, test_spec)
-    # for k, v in _test_result_dict.items():
-    #     if k not in test_result_dict:
-    #         test_result_dict[k] = v
-    #     else:
-    #         assert v == test_result_dict[k]
-    
-    # _test_result_dict = parse_log_pytest_v2(log, test_spec)
-    # for k, v in _test_result_dict.items():
-    #     if k not in test_result_dict:
-    #         test_result_dict[k] = v
-    #     else:
-    #         assert v == test_result_dict[k]
-
-    test_result_dict = parser_pytest(log)    
-    test_result_dict.update(parser_unittest(log))
+    log = normalize_log(log)  
+    test_result_dict = parser_pytest(log)
+    test_result_dict.update({k:v for k,v in parser_unittest(log).items() if k not in test_result_dict})
     return test_result_dict
 ##################
 
