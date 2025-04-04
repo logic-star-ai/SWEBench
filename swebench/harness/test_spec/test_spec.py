@@ -1,4 +1,5 @@
 import hashlib
+import ast
 import json
 import platform
 
@@ -73,7 +74,7 @@ class TestSpec:
     @property
     def base_image_key(self):
         return (
-            f"sweb.base.{MAP_REPO_TO_EXT[self.repo]}.{self.arch}:{self.base_image_tag}"
+            f"sweb.base.{MAP_REPO_TO_EXT.get(self.repo,"py")}.{self.arch}:{self.base_image_tag}"
         )
 
     @property
@@ -91,12 +92,19 @@ class TestSpec:
         hash_object.update(hash_key.encode("utf-8"))
         hash_value = hash_object.hexdigest()
         val = hash_value[:22]  # 22 characters is still very likely to be unique
-        return f"sweb.env.{MAP_REPO_TO_EXT[self.repo]}.{self.arch}.{val}:{self.env_image_tag}"
+        return f"sweb.env.{MAP_REPO_TO_EXT.get(self.repo,"py")}.{self.arch}.{val}:{self.env_image_tag}"
 
     @property
     def instance_image_key(self):
-        key = f"sweb.eval.{self.arch}.{self.instance_id.lower()}:{self.instance_image_tag}"
-        if self.is_remote_image:
+        # TODO: when the images will be public then the key could be swabench/image_name and sweebench/image_name accordingly. Now because the docker registry is not public this is little bit different.
+        if self.namespace == "swabench":
+            key = f"192.168.50.100:5000/swa.eval.{self.arch}.{self.instance_id.lower()}:{self.instance_image_tag}"
+        elif self.namespace == "sweebench":
+            key = f"192.168.50.100:5000/swee.eval.{self.arch}.{self.instance_id.lower()}:{self.instance_image_tag}"
+        else:
+            key = f"sweb.eval.{self.arch}.{self.instance_id.lower()}:{self.instance_image_tag}"
+        
+        if self.is_remote_image and not (self.namespace == "swabench" or self.namespace == "sweebench"):
             key = f"{self.namespace}/{key}".replace("__", "_1776_")
         return key
 
@@ -194,7 +202,12 @@ def make_test_spec(
 
     env_name = "testbed"
     repo_directory = f"/{env_name}"
-    specs = MAP_REPO_VERSION_TO_SPECS[repo][version]
+
+    if repo in MAP_REPO_VERSION_TO_SPECS:
+        specs = MAP_REPO_VERSION_TO_SPECS[repo][version]
+    else:
+        specs = json.loads(instance["install"])
+
     docker_specs = specs.get("docker_specs", {})
 
     repo_script_list = make_repo_script_list(
@@ -220,7 +233,7 @@ def make_test_spec(
         arch=arch,
         FAIL_TO_PASS=fail_to_pass,
         PASS_TO_PASS=pass_to_pass,
-        language=MAP_REPO_TO_EXT[repo],
+        language=MAP_REPO_TO_EXT.get(repo,"py"),
         docker_specs=docker_specs,
         namespace=namespace,
         base_image_tag=base_image_tag,

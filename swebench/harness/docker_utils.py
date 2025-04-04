@@ -305,7 +305,7 @@ def should_remove(image_name: str, cache_level: str, clean: bool, prior_images: 
     elif image_name.startswith("sweb.env"):
         if cache_level in {"none", "base"} and (clean or not existed_before):
             return True
-    elif image_name.startswith("sweb.eval"):
+    elif image_name.startswith("sweb.eval") or image_name.startswith("swee.eval") or image_name.startswith("swa.eval"):
         if cache_level in {"none", "base", "env"} and (clean or not existed_before):
             return True
     return False
