@@ -26,6 +26,7 @@ from swebench.harness.log_parsers.python import  swa_parser
 
 # MARK: Utility functions
 def test_passed(case: str, sm: dict[str, str]) -> bool:
+    # Keeping XFAIL here for backward compatibility but should be considered failure
     return case in sm and sm[case] in [TestStatus.PASSED.value, TestStatus.XFAIL.value, TestStatus.XPASS.value]
 
 
