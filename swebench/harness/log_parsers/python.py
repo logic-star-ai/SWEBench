@@ -1,6 +1,4 @@
 import re
-from enum import Enum
-from collections import defaultdict
 
 from swebench.harness.constants import TestStatus
 from swebench.harness.test_spec.test_spec import TestSpec
@@ -251,9 +249,6 @@ def parse_log_matplotlib(log: str, test_spec: TestSpec) -> dict[str, str]:
             test_status_map[test_case[1]] = test_case[0]
     return test_status_map
 
-###################
-# SWA parsers
-
 def parser_pytest(
     log: str,
 ) -> dict[str, str]: 
@@ -279,15 +274,12 @@ def parser_unittest(
         "skipped": TestStatus.SKIPPED,
         "x": TestStatus.XFAIL,
         "u": TestStatus.ERROR,
-        "deprecated": TestStatus.SKIPPED,  # not sure what to do with this one
+        "deprecated": TestStatus.SKIPPED,
     }
 
     test_result_dict: dict[str, str] = {}
     # parser unit test
     # first check pattern with ... inbetween, e.g. test ... status
-    pattern = (
-        rf"([^\s]+)\s*\.\.\.\s*({'|'.join(x for x in UNITTEST_TO_PYTESTSTATUS.keys())})"
-    )
     pattern = rf"(test[_\w]*\s\([^\)]+\)|[^\s]+)\s*\.\.\.\s*({'|'.join(x for x in UNITTEST_TO_PYTESTSTATUS.keys())})"
     all_matches = re.findall(pattern, log)
     for test_name, status in all_matches:
@@ -301,7 +293,6 @@ def parser_unittest(
 
     # second check pattern with newline inbetween, e.g. test \nnstatus
     pattern = rf"([^\s]+)\n({'|'.join(x for x in UNITTEST_TO_PYTESTSTATUS.keys())})"
-    # pattern = rf"(test[_\w]*(?:\s\([^\)]+\)|[^\s]+))\s*(?:\.\.\.\s*)?\n?({'|'.join(x for x in UNITTEST_TO_PYTESTSTATUS.keys())})\s*\n?"
     all_matches = re.findall(pattern, log)
     for test_name, status in all_matches:
         # unit test name has to have a test in it
@@ -317,7 +308,7 @@ def parser_unittest(
 
 def normalize_log(log:str)->str:
 
-    # clean some left over non-sense symbols
+    # clean ASCI escape characters
     to_escape = re.compile(r'(?i)\x1b\[[0-9]+m')
     log = to_escape.sub('', log)
 
@@ -348,7 +339,6 @@ def swa_parser(
     test_result_dict = parser_pytest(log)
     test_result_dict.update({k:v for k,v in parser_unittest(log).items() if k not in test_result_dict})
     return test_result_dict
-##################
 
 parse_log_astroid = parse_log_pytest
 parse_log_flask = parse_log_pytest

@@ -58,8 +58,6 @@ from swebench.harness.utils import (
     str2bool,
 )
 
-from swebench.harness.log_parsers import MAP_REPO_TO_PARSER
-
 GIT_APPLY_CMDS = [
     "git apply --verbose",
     "git apply --verbose --reject",

@@ -184,10 +184,9 @@ def make_repo_script_list_py(
         "source /opt/miniconda3/bin/activate",
     ]
 
-    if "install" in specs:
-        if isinstance(specs["install"], str) and "uv pip " in specs["install"]:
-            setup_commands.append("conda activate base && pip install uv")
-        elif isinstance(specs["install"], list) and "uv pip " in "\n".join(specs["install"]):
+    if "install" in specs \
+        and ((isinstance(specs["install"], str) and "uv pip " in specs["install"])
+        or (isinstance(specs["install"], list) and "uv pip " in "\n".join(specs["install"]))):
             setup_commands.append("conda activate base && pip install uv")
 
     setup_commands.extend(
@@ -212,7 +211,7 @@ def make_repo_script_list_py(
         elif isinstance(specs["install"], list):
             setup_commands.extend(specs["install"])
         else:
-            assert False, f'specs["install"] of type {type(specs["install"])} is not supported'
+            raise ValueError(f'specs["install"] of type {type(specs["install"])} is not supported')
 
     # If the setup modifies the repository in any way, it can be
     # difficult to get a clean diff.  This ensures that `git diff`
@@ -225,6 +224,7 @@ def make_repo_script_list_py(
     ]
 
     setup_commands += clean_diff_commands
+
     return setup_commands
 
 
