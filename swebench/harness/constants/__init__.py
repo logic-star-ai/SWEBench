@@ -55,6 +55,7 @@ class TestStatus(Enum):
     SKIPPED = "SKIPPED"
     ERROR = "ERROR"
     XFAIL = "XFAIL"
+    XPASS = "XPASS"
 
 
 class EvalType(Enum):
