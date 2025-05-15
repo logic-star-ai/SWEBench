@@ -48,6 +48,7 @@ class TestSpec:
     base_image_tag: str = LATEST
     env_image_tag: str = LATEST
     instance_image_tag: str = LATEST
+    docker_image_root: str = "sweb.eval"
 
     @property
     def setup_env_script(self):
@@ -76,11 +77,6 @@ class TestSpec:
         """
         If docker_specs are present, the base image key includes a hash of the specs.
         """
-        if self.repo not in MAP_REPO_TO_EXT:
-            docker_base_str=f"sw.base.py.{self.arch}"
-        else:
-            docker_base_str=f"sweb.base.{MAP_REPO_TO_EXT[self.repo]}.{self.arch}"
-
         if self.docker_specs != {}:
             hash_key = str(self.docker_specs)
             hash_object = hashlib.sha256()
@@ -89,9 +85,9 @@ class TestSpec:
             val = hash_value[
                 :10
             ]  # 10 characters is still likely to be unique given only a few base images will be created
-            return f"{docker_base_str}.{val}:{self.base_image_tag}"
+            return f"sweb.base.{MAP_REPO_TO_EXT.get(self.repo, "py")}.{self.arch}.{val}:{self.base_image_tag}"
         return (
-            f"{docker_base_str}:{self.base_image_tag}"
+            f"sweb.base.{MAP_REPO_TO_EXT.get(self.repo, "py")}.{self.arch}:{self.base_image_tag}"
         )
 
     @property
@@ -109,19 +105,16 @@ class TestSpec:
         hash_object.update(hash_key.encode("utf-8"))
         hash_value = hash_object.hexdigest()
         val = hash_value[:22]  # 22 characters is still very likely to be unique
-        if self.repo not in MAP_REPO_TO_EXT:
-            return f"sw.env.py.{self.arch}.{val}:{self.env_image_tag}"
-        return f"sweb.env.{MAP_REPO_TO_EXT[self.repo]}.{self.arch}.{val}:{self.env_image_tag}"
+        return f"sweb.env.{MAP_REPO_TO_EXT.get(self.repo, "py")}.{self.arch}.{val}:{self.env_image_tag}"
 
     @property
     def instance_image_key(self):
-        if self.repo not in MAP_REPO_TO_EXT:
-            key = f"logicstarai/swa-bench:sw.eval.{self.arch}.{self.instance_id.lower()}"
-        else:
-            key = f"sweb.eval.{self.arch}.{self.instance_id.lower()}:{self.instance_image_tag}"
+        key = f"{self.docker_image_root}.{self.arch}.{self.instance_id.lower()}" + ("" if ":" in self.docker_image_root else f":{self.instance_image_tag}")
+        if self.is_remote_image:
+            key = f"{self.namespace}/{key}"
+            if self.docker_image_root == "sweb.eval":
+                key = key.replace("__", "_1776_")
 
-        if self.is_remote_image and not self.namespace == "swabench":
-            key = f"{self.namespace}/{key}".replace("__", "_1776_")
         return key
 
     @property
@@ -225,6 +218,7 @@ def make_test_spec(
         specs = json.loads(instance["install"])
 
     docker_specs = specs.get("docker_specs", {})
+    docker_image_root = instance.get("docker_image_root", "sweb.eval")
 
     repo_script_list = make_repo_script_list(
         specs, repo, repo_directory, base_commit, env_name
@@ -255,4 +249,5 @@ def make_test_spec(
         base_image_tag=base_image_tag,
         env_image_tag=env_image_tag,
         instance_image_tag=instance_image_tag,
+        docker_image_root=docker_image_root,
     )
